@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart AI Study Assistant</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mut:#667;--ac:#5b5bd6;--acx:#fff;--bd:#e3e5ee;--ok:#1a9a5b;--bad:#d6455b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141c;--card:#1c1f2b;--tx:#eceef6;--mut:#9aa0b5;--ac:#8b8bff;--acx:#10121a;--bd:#2c3042;--ok:#4cd08b;--bad:#ff7389;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12141c;--card:#1c1f2b;--tx:#eceef6;--mut:#9aa0b5;--ac:#8b8bff;--acx:#10121a;--bd:#2c3042;--ok:#4cd08b;--bad:#ff7389;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0 2px}
+.sub{color:var(--mut);margin:0 0 14px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.tab{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;font:inherit}
+.tab.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-top:10px}
+textarea,input,select{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;margin:6px 0}
+textarea{min-height:110px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button.go{background:var(--ac);color:var(--acx);border:0;border-radius:10px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
+button.go:disabled{opacity:.5}
+button.alt{background:transparent;color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px 16px;font:inherit;cursor:pointer}
+.out{white-space:pre-wrap;margin-top:12px}
+.mut{color:var(--mut);font-size:.9rem}
+.q{margin:14px 0;padding-top:10px;border-top:1px solid var(--bd)}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;cursor:pointer}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--bg))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--bg))}
+.fc{min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:1.15rem;cursor:pointer;padding:20px}
+.timer{font-size:3.2rem;font-weight:700;text-align:center;margin:10px 0;font-variant-numeric:tabular-nums}
+.hide{display:none}
+.msg{margin:8px 0;padding:10px 12px;border-radius:12px;white-space:pre-wrap}
+.u{background:var(--ac);color:var(--acx);margin-left:15%}
+.a{background:var(--bg);border:1px solid var(--bd);margin-right:8%}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📚 Smart AI Study Assistant</h1>
+  <p class="sub">Ask doubts, summarize notes, make quizzes and flashcards, and stay focused.</p>
+  <div class="tabs" id="tabs"></div>
+
+  <div id="p-ask" class="card">
+    <div id="chat"></div>
+    <textarea id="askIn" placeholder="Ask any study question…"></textarea>
+    <div class="row"><button class="go" id="askBtn">Ask tutor</button><button class="alt" id="askClr">Clear</button></div>
+  </div>
+
+  <div id="p-sum" class="card hide">
+    <textarea id="sumIn" placeholder="Paste your notes or a chapter here…"></textarea>
+    <select id="sumMode"><option value="short bullet-point summary">Short summary</option><option value="detailed summary with headings and key terms">Detailed summary</option><option value="explanation in very simple words, like I’m 12">Explain simply</option></select>
+    <button class="go" id="sumBtn">Summarize</button>
+    <div class="out" id="sumOut"></div>
+  </div>
+
+  <div id="p-quiz" class="card hide">
+    <input id="quizTopic" placeholder="Topic or paste notes (e.g. Photosynthesis)">
+    <select id="quizN"><option>5</option><option>8</option><option>10</option></select>
+    <button class="go" id="quizBtn">Generate quiz</button>
+    <div id="quizOut"></div>
+  </div>
+
+  <div id="p-fc" class="card hide">
+    <input id="fcTopic" placeholder="Topic or paste notes">
+    <button class="go" id="fcBtn">Make flashcards</button>
+    <div id="fcOut"></div>
+  </div>
+
+  <div id="p-plan" class="card hide">
+    <input id="planSub" placeholder="Subjects (e.g. Maths, Physics, DBMS)">
+    <input id="planDate" placeholder="Exam date or days left (e.g. 10 days)">
+    <input id="planHrs" placeholder="Study hours per day (e.g. 4)">
+    <button class="go" id="planBtn">Build study plan</button>
+    <div class="out" id="planOut"></div>
+  </div>
+
+  <div id="p-time" class="card hide">
+    <div class="timer" id="tm">25:00</div>
+    <div class="row" style="justify-content:center">
+      <button class="go" id="tStart">Start</button><button class="alt" id="tReset">Reset</button>
+      <button class="alt" id="tMode">Switch: Focus / Break</button>
+    </div>
+    <p class="mut" style="text-align:center" id="tInfo">Focus session · 25 min</p>
+  </div>
+  <p class="mut" style="text-align:center;margin-top:18px">Built for a hackathon · AI answers can be wrong, so double-check important facts.</p>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const tabs=[["ask","💬 Ask"],["sum","📝 Summarize"],["quiz","❓ Quiz"],["fc","🃏 Flashcards"],["plan","🗓️ Planner"],["time","⏱️ Timer"]];
+tabs.forEach(([k,l])=>{const b=document.createElement("button");b.className="tab"+(k==="ask"?" on":"");b.textContent=l;b.onclick=()=>show(k);b.dataset.k=k;$("tabs").appendChild(b)});
+function show(k){tabs.forEach(([t])=>$("p-"+t).classList.toggle("hide",t!==k));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.k===k))}
+
+let sampleP=null;
+function getSample(){if(!sampleP)sampleP=(window.claude&&window.claude.use?window.claude.use("sample"):Promise.resolve(null));return sampleP}
+async function ai(prompt,opts){const s=await getSample();if(!s)throw new Error("AI isn’t available in this view. Open the page inside claude.ai.");return s(prompt,opts)}
+async function aiJson(prompt){const s=await getSample();if(!s)throw new Error("AI isn’t available in this view. Open the page inside claude.ai.");return s.json(prompt)}
+function busy(btn,on,txt){btn.disabled=on;if(txt)btn.dataset.t=btn.dataset.t||btn.textContent;btn.textContent=on?"Working…":btn.dataset.t||btn.textContent}
+function err(el,e){el.textContent="⚠️ "+(e&&e.message?e.message:"Something went wrong. Please try again.")}
+
+/* Ask tutor */
+let hist=[];
+$("askBtn").onclick=async()=>{
+  const q=$("askIn").value.trim();if(!q)return;
+  hist.push({role:"user",content:q});$("askIn").value="";
+  const chat=$("chat");const u=document.createElement("div");u.className="msg u";u.textContent=q;chat.appendChild(u);
+  const a=document.createElement("div");a.className="msg a";a.textContent="Thinking…";chat.appendChild(a);
+  busy($("askBtn"),true,1);
+  try{
+    const msgs=[{role:"user",content:"You are a friendly study tutor. Explain clearly with simple steps and a short example. Keep answers concise.\n\nConversation so far is below; answer the last question."},{role:"assistant",content:"Understood."}].concat(hist.slice(-8));
+    const r=await ai(msgs,{cache:false,onText:({text})=>{a.textContent=text}});
+    a.textContent=r.text;hist.push({role:"assistant",content:r.text});
+  }catch(e){err(a,e);hist.pop()}
+  busy($("askBtn"),false);
+};
+$("askClr").onclick=()=>{hist=[];$("chat").innerHTML=""};
+
+/* Summarize */
+$("sumBtn").onclick=async()=>{
+  const t=$("sumIn").value.trim();if(!t)return;
+  busy($("sumBtn"),true,1);$("sumOut").textContent="Reading your notes…";
+  try{const r=await ai("Produce a "+$("sumMode").value+" of these study notes. Use plain text, no markdown symbols.\n\nNOTES:\n"+t,{cache:false,onText:({text})=>{$("sumOut").textContent=text}});$("sumOut").textContent=r.text}
+  catch(e){err($("sumOut"),e)}
+  busy($("sumBtn"),false);
+};
+
+/* Quiz */
+$("quizBtn").onclick=async()=>{
+  const t=$("quizTopic").value.trim();if(!t)return;
+  const n=$("quizN").value;busy($("quizBtn"),true,1);$("quizOut").textContent="Generating questions…";
+  try{
+    const d=await aiJson("Create "+n+" multiple-choice questions on this topic or notes: "+t+'\nReturn ONLY JSON: [{"q":"...","options":["A","B","C","D"],"answer":0,"why":"short explanation"}] where answer is the index of the correct option.');
+    const box=$("quizOut");box.innerHTML="";let score=0,done=0;
+    const sc=document.createElement("p");sc.className="mut";sc.textContent="Score: 0 / "+d.length;
+    d.forEach((it,i)=>{
+      const q=document.createElement("div");q.className="q";
+      const h=document.createElement("strong");h.textContent=(i+1)+". "+it.q;q.appendChild(h);
+      const why=document.createElement("div");why.className="mut hide";why.textContent="💡 "+it.why;
+      const bs=it.options.map((o,j)=>{const b=document.createElement("button");b.className="opt";b.textContent=o;
+        b.onclick=()=>{if(q.dataset.d)return;q.dataset.d=1;done++;
+          if(j===it.answer){b.classList.add("ok");score++}else{b.classList.add("bad");bs[it.answer].classList.add("ok")}
+          why.classList.remove("hide");sc.textContent="Score: "+score+" / "+d.length+(done===d.length?" 🎉 Done!":"")};
+        q.appendChild(b);return b});
+      q.appendChild(why);box.appendChild(q)});
+    box.prepend(sc);
+  }catch(e){err($("quizOut"),e)}
+  busy($("quizBtn"),false);
+};
+
+/* Flashcards */
+$("fcBtn").onclick=async()=>{
+  const t=$("fcTopic").value.trim();if(!t)return;
+  busy($("fcBtn"),true,1);$("fcOut").textContent="Making cards…";
+  try{
+    const d=await aiJson("Create 8 flashcards on: "+t+'\nReturn ONLY JSON: [{"front":"question or term","back":"answer or definition"}]');
+    let i=0,flip=false;const box=$("fcOut");box.innerHTML="";
+    const card=document.createElement("div");card.className="card fc";
+    const info=document.createElement("p");info.className="mut";info.style.textAlign="center";
+    const row=document.createElement("div");row.className="row";row.style.justifyContent="center";
+    const pv=document.createElement("button");pv.className="alt";pv.textContent="← Prev";
+    const nx=document.createElement("button");nx.className="alt";nx.textContent="Next →";
+    function r(){card.textContent=flip?d[i].back:d[i].front;info.textContent="Card "+(i+1)+" of "+d.length+" · tap card to flip"}
+    card.onclick=()=>{flip=!flip;r()};
+    pv.onclick=()=>{i=(i-1+d.length)%d.length;flip=false;r()};
+    nx.onclick=()=>{i=(i+1)%d.length;flip=false;r()};
+    row.append(pv,nx);box.append(card,info,row);r();
+  }catch(e){err($("fcOut"),e)}
+  busy($("fcBtn"),false);
+};
+
+/* Planner */
+$("planBtn").onclick=async()=>{
+  const s=$("planSub").value.trim();if(!s)return;
+  busy($("planBtn"),true,1);$("planOut").textContent="Planning…";
+  try{const r=await ai("Create a realistic day-by-day study plan. Subjects: "+s+". Time left: "+($("planDate").value||"1 week")+". Hours per day: "+($("planHrs").value||"3")+". Include revision and short breaks. Plain text, no markdown symbols.",{cache:false,onText:({text})=>{$("planOut").textContent=text}});$("planOut").textContent=r.text}
+  catch(e){err($("planOut"),e)}
+  busy($("planBtn"),false);
+};
+
+/* Timer */
+let focus=true,left=1500,iv=null;
+function draw(){const m=Math.floor(left/60),s=left%60;$("tm").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")}
+function setMode(){left=focus?1500:300;$("tInfo").textContent=focus?"Focus session · 25 min":"Break · 5 min";draw()}
+$("tStart").onclick=()=>{
+  if(iv){clearInterval(iv);iv=null;$("tStart").textContent="Start";return}
+  $("tStart").textContent="Pause";
+  iv=setInterval(()=>{left--;draw();if(left<=0){clearInterval(iv);iv=null;$("tStart").textContent="Start";focus=!focus;setMode();$("tInfo").textContent=(focus?"Break over! Ready to focus?":"Great work! Take a break.")}},1000)};
+$("tReset").onclick=()=>{clearInterval(iv);iv=null;$("tStart").textContent="Start";setMode()};
+$("tMode").onclick=()=>{clearInterval(iv);iv=null;$("tStart").textContent="Start";focus=!focus;setMode()};
+draw();
+</script>
+</body>
+</html>
